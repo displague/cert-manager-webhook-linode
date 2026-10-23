@@ -1,4 +1,6 @@
-FROM golang:1.25-alpine AS build_deps
+# Build on the host's arch and cross-compile (GOOS/GOARCH from buildx), so multi-arch images
+# need no emulation for the Go build.
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS build_deps
 
 RUN apk add --no-cache git
 
@@ -13,7 +15,8 @@ FROM build_deps AS build
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+ARG TARGETOS TARGETARCH
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o webhook -ldflags '-w -extldflags "-static"' .
 
 FROM alpine:3.23
 
